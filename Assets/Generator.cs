@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SocialPlatforms;
 using UnityEngine.Tilemaps;
-using Random = UnityEngine.Random;
 
 public enum State {
     INIT,
@@ -74,6 +71,8 @@ public class Generator : MonoBehaviour {
         Camera.main.transform.position = center + new Vector3(0, 0, -10);
 
         infection = 1;
+        
+        refreshTiles();
     }
 
     // Update is called once per frame
@@ -82,13 +81,15 @@ public class Generator : MonoBehaviour {
             kickoff();
         }
 
+        Camera.main.orthographicSize = Mathf.SmoothStep(Camera.main.orthographicSize, zoom, Time.deltaTime * zoomSpeed);
+    }
+
+    private void refreshTiles() {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 tilemap.SetTile(new Vector3Int(x + bottomLeft.x, y + bottomLeft.y, 0), tilesBlock[state[x, y]]);
             }
         }
-
-        Camera.main.orthographicSize = Mathf.SmoothStep(Camera.main.orthographicSize, zoom, Time.deltaTime * zoomSpeed);
     }
 
     public IEnumerator grow() {
@@ -112,14 +113,15 @@ public class Generator : MonoBehaviour {
             var _x = cell.x + x;
             var _y = cell.y + y;
 
-            var s = state[cell.x, cell.y];
-
-            if (_x >= 0 && _y >= 0 && _x < width && _y < height && state[_x, _y] < s) {
-                state[_x, _y] = s;
-            }
-
-            if (Random.Range(0f, 1f) < survialChance) {
-                newGrowing.Add(new Vector3Int(_x, _y, 0));
+            if (_x >= 0 && _y >= 0 && _x < width && _y < height) {
+                var s = state[cell.x, cell.y];    
+                if (state[_x, _y] < s) {
+                    state[_x, _y] = s;
+                    
+                    if (Random.Range(0f, 1f) < survialChance) {
+                        newGrowing.Add(new Vector3Int(_x, _y, 0));
+                    }
+                }
             }
 
             if (Random.Range(0f, cell.z) < survialChance) {
@@ -132,6 +134,8 @@ public class Generator : MonoBehaviour {
         if (zoom < zoomMax) {
             zoom *= zoomMultiplier;
         }
+        
+        refreshTiles();
     }
 
     public void kickoff() {
@@ -143,6 +147,8 @@ public class Generator : MonoBehaviour {
             growing.Add(cell);
             state[cell.x, cell.y] = infection;
 
+            refreshTiles();
+            
             if (runState == State.INIT) {
                 runState = State.RUNNING;
                 StartCoroutine(grow());
