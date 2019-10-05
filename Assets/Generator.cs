@@ -112,9 +112,10 @@ public class Generator : MonoBehaviour {
             
             if (Input.GetMouseButtonDown(0)) {
                 if (available > 0) {
-                    infection = Mathf.Clamp(infection + 0.3f, 0.1f, survialChance.Length - 1);
-                    if (kickoff((int) infection, cell)) {
-                        Instantiate(clickSound, worldPoint, Quaternion.identity);    
+                    var newInfection = Mathf.Clamp(this.infection + 0.3f, 0.1f, survialChance.Length - 1);
+                    if (kickoff((int) newInfection, cell)) {
+                        Instantiate(clickSound, worldPoint, Quaternion.identity);
+                        infection = newInfection;
                     } else {
                         Instantiate(clickSoundWrong, worldPoint, Quaternion.identity);
                     }
