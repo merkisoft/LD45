@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.SocialPlatforms;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
-using Random = UnityEngine.Random;
+using UnityEngine.UIElements;
 
 public enum State {
     INIT,
@@ -56,6 +54,7 @@ public class Generator : MonoBehaviour {
 
     public Text counterText;
     public Text availableText;
+    public GameObject gameOverText;
     
     // Start is called before the first frame update
     void Start() {
@@ -100,6 +99,7 @@ public class Generator : MonoBehaviour {
         infection = 0;
 
         refreshTiles();
+        
     }
 
     // Update is called once per frame
@@ -113,8 +113,8 @@ public class Generator : MonoBehaviour {
                     infection = Mathf.Clamp(infection * 1.15f, 0.1f, survialChance.Length - 1);
                     kickoff((int) infection, cell);
                 }
-            } else if (Input.GetMouseButton(1)) {    // attack
-                kickoff(survialChance.Length, cell);
+//            } else if (Input.GetMouseButton(1)) {    // attack
+//                kickoff(survialChance.Length, cell);
             } 
         }
 
@@ -163,6 +163,8 @@ public class Generator : MonoBehaviour {
     public void spawn() {
         List<Cell> newGrowing = new List<Cell>();
 
+        var oldPoints = points;
+           
         foreach (var cell in growing) {
             var x = Random.Range(-1, 2);
             var y = Random.Range(-1, 2);
@@ -178,10 +180,10 @@ public class Generator : MonoBehaviour {
                 if (state[_x, _y] < infectionType) {
                     state[_x, _y] = infectionType;
 
+                    if (infectionType != survialChance.Length + 1) points += infectionType + 1;
+
                     if (Random.Range(0f, 1f) < cell.survival) {
                         newGrowing.Add(new Cell(new Vector3Int(_x, _y, 0), cell.survival));
-                        
-                        if (infectionType != survialChance.Length) points += infectionType + 1;
                     }
                 }
             }
@@ -189,9 +191,14 @@ public class Generator : MonoBehaviour {
             if (Random.Range(0f, cell.age) < cell.survival) {
                 cell.age++;
                 newGrowing.Add(cell);
+                
             }
         }
 
+        if (points == oldPoints && available == 0) {
+            gameOverText.SetActive(true);
+        }
+        
         var cost = extraCost * ((int) infection + 1);
         var extra = (points - pointsConverted) / cost;
         var costs = extra * cost;
