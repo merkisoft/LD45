@@ -55,6 +55,8 @@ public class Generator : MonoBehaviour {
     public Text counterText;
     public Text availableText;
     public GameObject gameOverText;
+    public GameObject clickSound;
+    public GameObject clickSoundWrong;
     
     // Start is called before the first frame update
     void Start() {
@@ -108,13 +110,17 @@ public class Generator : MonoBehaviour {
             var worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector3Int cell = tilemap.WorldToCell(worldPoint) + topRight;
             
-            if (Input.GetMouseButton(0)) {
+            if (Input.GetMouseButtonDown(0)) {
                 if (available > 0) {
                     infection = Mathf.Clamp(infection * 1.15f, 0.1f, survialChance.Length - 1);
-                    kickoff((int) infection, cell);
+                    if (kickoff((int) infection, cell)) {
+                        Instantiate(clickSound, worldPoint, Quaternion.identity);    
+                    } else {
+                        Instantiate(clickSoundWrong, worldPoint, Quaternion.identity);
+                    }
+                } else {
+                    Instantiate(clickSoundWrong, worldPoint, Quaternion.identity);
                 }
-//            } else if (Input.GetMouseButton(1)) {    // attack
-//                kickoff(survialChance.Length, cell);
             } 
         }
 
@@ -214,7 +220,7 @@ public class Generator : MonoBehaviour {
         refreshTiles();
     }
 
-    public void kickoff(int infection, Vector3Int cell ) {
+    public bool kickoff(int infection, Vector3Int cell ) {
         if (cell.x < width && cell.y < height &&
             cell.x >= 0 && cell.y >= 0 && state[cell.x, cell.y] < infection + 1) {
             state[cell.x, cell.y] = (byte) (infection + 1);
@@ -233,7 +239,11 @@ public class Generator : MonoBehaviour {
                 StartCoroutine(grow());
                 StartCoroutine(startEnemy());
             }
+
+            return true;
         }
+
+        return false;
     }
     
     public IEnumerator startEnemy() {
