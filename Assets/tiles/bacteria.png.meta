@@ -1445,6 +1445,9 @@ TextureImporter:
   - first:
       213: 5831357113456722373
     second: bacteria_null
+  - first:
+      213: 4736645862612065565
+    second: defence
   externalObjects: {}
   serializedVersion: 10
   mipmaps:
@@ -1654,7 +1657,7 @@ TextureImporter:
         width: 48
         height: 22
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1662,6 +1665,27 @@ TextureImporter:
       bones: []
       spriteID: 6a756789d1569c54eb9e8e38c17c211d
       internalID: 5831357113456722373
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defence
+      rect:
+        serializedVersion: 2
+        x: 750
+        y: 884
+        width: 152
+        height: 147
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c86e39e85ddea3f4d90d32bed4df38a8
+      internalID: 4736645862612065565
       vertices: []
       indices: 
       edges: []

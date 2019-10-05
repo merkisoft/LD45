@@ -23,6 +23,8 @@ public class Generator : MonoBehaviour {
     private int height;
 
     private State runState = State.INIT;
+    private float zoom;
+    public float zoomSpeed;
 
     private List<Vector3Int> growing = new List<Vector3Int>();
 
@@ -30,6 +32,8 @@ public class Generator : MonoBehaviour {
     void Start() {
         tilemap = GetComponentInChildren<Tilemap>();
 
+        zoom = Camera.main.orthographicSize;
+        
         width = topRight.x - bottomLeft.x;
         height = topRight.y - bottomLeft.y;
 
@@ -48,6 +52,14 @@ public class Generator : MonoBehaviour {
             }
         }
 
+        for (int x = -10; x < width + 10; x++) {
+            for (int y = -10; y < height + 10; y++) {
+                if (x < 0 || y < 0 || x >= width || y >= height) {
+                    tilemap.SetTile(new Vector3Int(x + bottomLeft.x, y + bottomLeft.y, 0), tilesBlock[tilesBlock.Length - 1]);
+                }
+            }
+        }
+        
         var center = tilemap.CellToWorld(Vector3Int.zero);
         Camera.main.transform.position = center + new Vector3(0, 0, -10);
     }
@@ -63,6 +75,9 @@ public class Generator : MonoBehaviour {
                 tilemap.SetTile(new Vector3Int(x + bottomLeft.x, y + bottomLeft.y, 0), tilesBlock[state[x, y]]);
             }
         }
+
+        Camera.main.orthographicSize = Mathf.SmoothStep(Camera.main.orthographicSize, zoom, Time.deltaTime * zoomSpeed);
+
     }
 
     public IEnumerator grow() {
@@ -92,8 +107,8 @@ public class Generator : MonoBehaviour {
 
         growing.AddRange(newGrowing);
 
-        if (Camera.main.orthographicSize < 20) {
-            Camera.main.orthographicSize *= 1.03f;
+        if (zoom < width) {
+            zoom *= 1.03f;
         }
     }
 
@@ -119,6 +134,6 @@ public class Generator : MonoBehaviour {
     }
 
     private byte randomTile() {
-        return (byte) Random.Range(1, tilesBlock.Length);
+        return (byte) Random.Range(1, tilesBlock.Length - 1);
     }
 }
