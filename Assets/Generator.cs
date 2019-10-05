@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SocialPlatforms;
 using UnityEngine.Tilemaps;
 using Random = UnityEngine.Random;
 
@@ -23,8 +24,15 @@ public class Generator : MonoBehaviour {
     private int height;
 
     private State runState = State.INIT;
+
     private float zoom;
     public float zoomSpeed;
+    public float zoomMultiplier;
+    public float zoomMax;
+
+    public byte infection;
+    public float survialChance;
+    public float survialChanceRate;
 
     private List<Vector3Int> growing = new List<Vector3Int>();
 
@@ -33,35 +41,39 @@ public class Generator : MonoBehaviour {
         tilemap = GetComponentInChildren<Tilemap>();
 
         zoom = Camera.main.orthographicSize;
-        
+
         width = topRight.x - bottomLeft.x;
         height = topRight.y - bottomLeft.y;
 
         state = new byte[width, height];
 
-        var radius = (width / 2 - 2) * (width / 2 - 2);
-        
+        var minRadius = (width / 2 - 2) * (width / 2 - 2);
+        var maxRadius = (width / 2) * (width / 2);
+
         for (int _x = 0; _x < width; _x++) {
             for (int _y = 0; _y < height; _y++) {
                 var x = _x - width / 2;
                 var y = _y - height / 2;
-                
-                if (x * x + y * y > radius) {
+
+                var r = x * x + y * y;
+                if (r > minRadius && r < maxRadius) {
                     state[_x, _y] = (byte) (tilesBlock.Length - 1);
                 }
             }
         }
 
-        for (int x = -10; x < width + 10; x++) {
-            for (int y = -10; y < height + 10; y++) {
-                if (x < 0 || y < 0 || x >= width || y >= height) {
-                    tilemap.SetTile(new Vector3Int(x + bottomLeft.x, y + bottomLeft.y, 0), tilesBlock[tilesBlock.Length - 1]);
-                }
-            }
-        }
-        
+//        for (int x = -10; x < width + 10; x++) {
+//            for (int y = -10; y < height + 10; y++) {
+//                if (x < 0 || y < 0 || x >= width || y >= height) {
+//                    tilemap.SetTile(new Vector3Int(x + bottomLeft.x, y + bottomLeft.y, 0), tilesBlock[tilesBlock.Length - 1]);
+//                }
+//            }
+//        }
+
         var center = tilemap.CellToWorld(Vector3Int.zero);
         Camera.main.transform.position = center + new Vector3(0, 0, -10);
+
+        infection = 1;
     }
 
     // Update is called once per frame
@@ -77,38 +89,48 @@ public class Generator : MonoBehaviour {
         }
 
         Camera.main.orthographicSize = Mathf.SmoothStep(Camera.main.orthographicSize, zoom, Time.deltaTime * zoomSpeed);
-
     }
 
     public IEnumerator grow() {
         while (runState != State.FINISHED) {
             spawn();
             yield return new WaitForSeconds(Random.Range(0.4f, 1));
+
+            survialChance = Mathf.Clamp(survialChance + survialChanceRate, 0, 10);
         }
     }
 
     public void spawn() {
         List<Vector3Int> newGrowing = new List<Vector3Int>();
 
+        var generation = new Vector3Int(0, 0, 1);
+
         foreach (var cell in growing) {
             var x = Random.Range(-1, 2);
             var y = Random.Range(-1, 2);
-            
+
             var _x = cell.x + x;
             var _y = cell.y + y;
 
             var s = state[cell.x, cell.y];
-            
+
             if (_x >= 0 && _y >= 0 && _x < width && _y < height && state[_x, _y] < s) {
                 state[_x, _y] = s;
+            }
+
+            if (Random.Range(0f, 1f) < survialChance) {
                 newGrowing.Add(new Vector3Int(_x, _y, 0));
+            }
+
+            if (Random.Range(0f, cell.z) < survialChance) {
+                newGrowing.Add(cell + generation);
             }
         }
 
-        growing.AddRange(newGrowing);
+        growing = newGrowing;
 
-        if (zoom < width) {
-            zoom *= 1.03f;
+        if (zoom < zoomMax) {
+            zoom *= zoomMultiplier;
         }
     }
 
@@ -116,21 +138,16 @@ public class Generator : MonoBehaviour {
         var worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         Vector3Int cell = tilemap.WorldToCell(worldPoint) + topRight;
 
-        Debug.Log(cell);
-        
-        if (cell.x < width && cell.y < height && 
-            cell.x >= 0 && cell.y >= 0) {
-            
+        if (cell.x < width && cell.y < height &&
+            cell.x >= 0 && cell.y >= 0 && state[cell.x, cell.y] < infection) {
             growing.Add(cell);
-            state[cell.x, cell.y] = randomTile();
+            state[cell.x, cell.y] = infection;
 
             if (runState == State.INIT) {
                 runState = State.RUNNING;
                 StartCoroutine(grow());
             }
-
         }
-        
     }
 
     private byte randomTile() {

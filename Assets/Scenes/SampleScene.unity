@@ -499,5 +499,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ee33aa05faa4fee42ad2bf8092e9e6af, type: 2}
   - {fileID: 11400000, guid: fc656acfc45168845bbcbb8ed9efce58, type: 2}
   - {fileID: 11400000, guid: 23725e6d6b0aeb94ab7b76a79901df99, type: 2}
-  bottomLeft: {x: -10, y: -10, z: 0}
-  topRight: {x: 10, y: 10, z: 0}
+  bottomLeft: {x: -15, y: -15, z: 0}
+  topRight: {x: 15, y: 15, z: 0}
+  zoomSpeed: 10
+  zoomMultiplier: 1.08
+  zoomMax: 15
+  infection: 1
+  survialChance: 3
+  survialChanceRate: -0.1
