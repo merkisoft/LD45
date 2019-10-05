@@ -112,7 +112,7 @@ public class Generator : MonoBehaviour {
             
             if (Input.GetMouseButtonDown(0)) {
                 if (available > 0) {
-                    infection = Mathf.Clamp(infection * 1.15f, 0.1f, survialChance.Length - 1);
+                    infection = Mathf.Clamp(infection + 0.3f, 0.1f, survialChance.Length - 1);
                     if (kickoff((int) infection, cell)) {
                         Instantiate(clickSound, worldPoint, Quaternion.identity);    
                     } else {
@@ -168,9 +168,9 @@ public class Generator : MonoBehaviour {
 
     public void spawn() {
         List<Cell> newGrowing = new List<Cell>();
-
-        var oldPoints = points;
            
+        var enemy = survialChance.Length + 1;
+
         foreach (var cell in growing) {
             var x = Random.Range(-1, 2);
             var y = Random.Range(-1, 2);
@@ -186,7 +186,7 @@ public class Generator : MonoBehaviour {
                 if (state[_x, _y] < infectionType) {
                     state[_x, _y] = infectionType;
 
-                    if (infectionType != survialChance.Length + 1) points += infectionType + 1;
+                    if (infectionType != enemy) points += infectionType + 1;
 
                     if (Random.Range(0f, 1f) < cell.survival) {
                         newGrowing.Add(new Cell(new Vector3Int(_x, _y, 0), cell.survival));
@@ -201,7 +201,7 @@ public class Generator : MonoBehaviour {
             }
         }
 
-        if (points == oldPoints && available == 0) {
+        if (available == 0 && !isGrowing(newGrowing)) {
             gameOverText.SetActive(true);
         }
         
@@ -220,6 +220,16 @@ public class Generator : MonoBehaviour {
         refreshTiles();
     }
 
+    private bool isGrowing(List<Cell> newGrowing) {
+        foreach (var cell in newGrowing) {
+            if (cell.survival > 0 && state[cell.pos.x, cell.pos.y] <= survialChance.Length) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
     public bool kickoff(int infection, Vector3Int cell ) {
         if (cell.x < width && cell.y < height &&
             cell.x >= 0 && cell.y >= 0 && state[cell.x, cell.y] < infection + 1) {
