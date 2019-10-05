@@ -1448,6 +1448,12 @@ TextureImporter:
   - first:
       213: 4736645862612065565
     second: defence
+  - first:
+      213: -7392424704743923198
+    second: white
+  - first:
+      213: -6897998946529238708
+    second: repeat
   externalObjects: {}
   serializedVersion: 10
   mipmaps:
@@ -1673,12 +1679,12 @@ TextureImporter:
       name: defence
       rect:
         serializedVersion: 2
-        x: 750
+        x: 752
         y: 884
         width: 152
         height: 147
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1686,6 +1692,48 @@ TextureImporter:
       bones: []
       spriteID: c86e39e85ddea3f4d90d32bed4df38a8
       internalID: 4736645862612065565
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: white
+      rect:
+        serializedVersion: 2
+        x: 9
+        y: 533
+        width: 130
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cbed9f9494acda047964680ec944676b
+      internalID: -7392424704743923198
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: repeat
+      rect:
+        serializedVersion: 2
+        x: 715
+        y: 580
+        width: 125
+        height: 116
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: edbc2de96557b3e4ab62605c3de73a07
+      internalID: -6897998946529238708
       vertices: []
       indices: 
       edges: []

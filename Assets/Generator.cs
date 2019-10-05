@@ -1,7 +1,12 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.SocialPlatforms;
 using UnityEngine.Tilemaps;
+using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public enum State {
     INIT,
@@ -9,8 +14,19 @@ public enum State {
     FINISHED
 }
 
+public class Cell {
+    public Vector3Int pos;
+    public float survival;
+    public float age;
+
+    public Cell(Vector3Int pos, float survialChance) {
+        this.pos = pos;
+        this.survival = survialChance;
+    }
+}
+
 public class Generator : MonoBehaviour {
-    public Tile[] tilesBlock;
+    public TileBase[] tilesBlock;
     private Tilemap tilemap;
 
     private byte[,] state;
@@ -27,12 +43,20 @@ public class Generator : MonoBehaviour {
     public float zoomMultiplier;
     public float zoomMax;
 
-    public byte infection;
-    public float survialChance;
+    public float infection;
+    public float[] survialChance;
     public float survialChanceRate;
 
-    private List<Vector3Int> growing = new List<Vector3Int>();
+    public int points;
+    public int pointsConverted;
+    public int extraCost;
+    public int available;
+    
+    private List<Cell> growing = new List<Cell>();
 
+    public Text counterText;
+    public Text availableText;
+    
     // Start is called before the first frame update
     void Start() {
         tilemap = GetComponentInChildren<Tilemap>();
@@ -53,7 +77,10 @@ public class Generator : MonoBehaviour {
                 var y = _y - height / 2;
 
                 var r = x * x + y * y;
-                if (r > minRadius && r < maxRadius) {
+                if (r < minRadius) {
+                } else if (r < maxRadius) {
+                    state[_x, _y] = (byte) (tilesBlock.Length - 2);
+                } else {
                     state[_x, _y] = (byte) (tilesBlock.Length - 1);
                 }
             }
@@ -70,24 +97,58 @@ public class Generator : MonoBehaviour {
         var center = tilemap.CellToWorld(Vector3Int.zero);
         Camera.main.transform.position = center + new Vector3(0, 0, -10);
 
-        infection = 1;
-        
+        infection = 0;
+
         refreshTiles();
     }
 
     // Update is called once per frame
     void Update() {
-        if (runState != State.FINISHED && Input.GetMouseButton(0)) {
-            kickoff();
+        if (runState != State.FINISHED) {
+            var worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            Vector3Int cell = tilemap.WorldToCell(worldPoint) + topRight;
+            
+            if (Input.GetMouseButton(0)) {
+                if (available > 0) {
+                    infection = Mathf.Clamp(infection * 1.15f, 0.1f, survialChance.Length - 1);
+                    kickoff((int) infection, cell);
+                }
+            } else if (Input.GetMouseButton(1)) {    // attack
+                kickoff(survialChance.Length, cell);
+            } 
         }
 
+        availableText.text = available + " x";
+        counterText.text = points + "";
+        
         Camera.main.orthographicSize = Mathf.SmoothStep(Camera.main.orthographicSize, zoom, Time.deltaTime * zoomSpeed);
     }
 
     private void refreshTiles() {
+        bool[,] growingCells = new bool[width, height];
+        foreach (var cell in growing) {
+            growingCells[cell.pos.x, cell.pos.y] = true;
+        }
+
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                tilemap.SetTile(new Vector3Int(x + bottomLeft.x, y + bottomLeft.y, 0), tilesBlock[state[x, y]]);
+                var position = new Vector3Int(x + bottomLeft.x, y + bottomLeft.y, 0);
+
+                var tile = tilesBlock[state[x, y]];
+                if (tile is AnimatedTile) {
+                    var speed = 2;
+                    ((AnimatedTile) tile).m_MinSpeed = speed;
+                    ((AnimatedTile) tile).m_MaxSpeed = speed;
+                }
+
+                tilemap.SetTile(position, tile);
+
+                if ( growingCells[x, y]) {
+                    tilemap.SetColor(position, Color.yellow);
+                } else {
+                    tilemap.SetColor(position, Color.white);
+                }
+
             }
         }
     }
@@ -95,68 +156,89 @@ public class Generator : MonoBehaviour {
     public IEnumerator grow() {
         while (runState != State.FINISHED) {
             spawn();
-            yield return new WaitForSeconds(Random.Range(0.4f, 1));
-
-            survialChance = Mathf.Clamp(survialChance + survialChanceRate, 0, 10);
+            yield return new WaitForSeconds(Random.Range(0.7f, 0.7f));            
         }
     }
 
     public void spawn() {
-        List<Vector3Int> newGrowing = new List<Vector3Int>();
-
-        var generation = new Vector3Int(0, 0, 1);
+        List<Cell> newGrowing = new List<Cell>();
 
         foreach (var cell in growing) {
             var x = Random.Range(-1, 2);
             var y = Random.Range(-1, 2);
 
-            var _x = cell.x + x;
-            var _y = cell.y + y;
+            var _x = cell.pos.x + x;
+            var _y = cell.pos.y + y;
 
+            var infectionType = state[cell.pos.x, cell.pos.y];
+
+            cell.survival = Mathf.Clamp(cell.survival + survialChanceRate, 0, 10);
+            
             if (_x >= 0 && _y >= 0 && _x < width && _y < height) {
-                var s = state[cell.x, cell.y];    
-                if (state[_x, _y] < s) {
-                    state[_x, _y] = s;
-                    
-                    if (Random.Range(0f, 1f) < survialChance) {
-                        newGrowing.Add(new Vector3Int(_x, _y, 0));
+                if (state[_x, _y] < infectionType) {
+                    state[_x, _y] = infectionType;
+
+                    if (Random.Range(0f, 1f) < cell.survival) {
+                        newGrowing.Add(new Cell(new Vector3Int(_x, _y, 0), cell.survival));
+                        
+                        if (infectionType != survialChance.Length) points += infectionType + 1;
                     }
                 }
             }
 
-            if (Random.Range(0f, cell.z) < survialChance) {
-                newGrowing.Add(cell + generation);
+            if (Random.Range(0f, cell.age) < cell.survival) {
+                cell.age++;
+                newGrowing.Add(cell);
             }
         }
 
+        var cost = extraCost * ((int) infection + 1);
+        var extra = (points - pointsConverted) / cost;
+        var costs = extra * cost;
+        pointsConverted += costs;
+        available += extra;
+        
         growing = newGrowing;
 
         if (zoom < zoomMax) {
             zoom *= zoomMultiplier;
         }
-        
+
         refreshTiles();
     }
 
-    public void kickoff() {
-        var worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        Vector3Int cell = tilemap.WorldToCell(worldPoint) + topRight;
-
+    public void kickoff(int infection, Vector3Int cell ) {
         if (cell.x < width && cell.y < height &&
-            cell.x >= 0 && cell.y >= 0 && state[cell.x, cell.y] < infection) {
-            growing.Add(cell);
-            state[cell.x, cell.y] = infection;
+            cell.x >= 0 && cell.y >= 0 && state[cell.x, cell.y] < infection + 1) {
+            state[cell.x, cell.y] = (byte) (infection + 1);
+
+            if (infection < survialChance.Length) {
+                growing.Add(new Cell(cell, survialChance[infection]));
+                available--;
+            } else {
+                growing.Add(new Cell(cell, 4));
+            }
 
             refreshTiles();
-            
+    
             if (runState == State.INIT) {
                 runState = State.RUNNING;
                 StartCoroutine(grow());
+                StartCoroutine(startEnemy());
             }
         }
     }
-
-    private byte randomTile() {
-        return (byte) Random.Range(1, tilesBlock.Length - 1);
+    
+    public IEnumerator startEnemy() {
+        while (runState != State.FINISHED) {
+            yield return new WaitForSeconds(Random.Range(4f, 5f));
+            var pos = new Vector3Int(Random.Range(-7, 8) + width / 2, Random.Range(-7, 8) + height / 2, 0);
+            kickoff(survialChance.Length, pos);    // deadly
+        }
     }
+
+    public void restart() {
+        SceneManager.LoadScene(0);
+    }
+
 }
