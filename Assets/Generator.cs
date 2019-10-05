@@ -1,7 +1,9 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using Random = UnityEngine.Random;
 
 public enum State {
     INIT,
@@ -33,9 +35,16 @@ public class Generator : MonoBehaviour {
 
         state = new byte[width, height];
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                state[x, y] = 0;
+        var radius = (width / 2 - 2) * (width / 2 - 2);
+        
+        for (int _x = 0; _x < width; _x++) {
+            for (int _y = 0; _y < height; _y++) {
+                var x = _x - width / 2;
+                var y = _y - height / 2;
+                
+                if (x * x + y * y > radius) {
+                    state[_x, _y] = (byte) (tilesBlock.Length - 1);
+                }
             }
         }
 
@@ -45,7 +54,7 @@ public class Generator : MonoBehaviour {
 
     // Update is called once per frame
     void Update() {
-        if (runState != State.FINISHED && Input.GetMouseButtonDown(0)) {
+        if (runState != State.FINISHED && Input.GetMouseButton(0)) {
             kickoff();
         }
 
@@ -59,39 +68,54 @@ public class Generator : MonoBehaviour {
     public IEnumerator grow() {
         while (runState != State.FINISHED) {
             spawn();
-            yield return new WaitForSeconds(Random.Range(0.1f, 1));
+            yield return new WaitForSeconds(Random.Range(0.4f, 1));
         }
     }
 
     public void spawn() {
-        var cell = growing[Random.Range(0, growing.Count)];
+        List<Vector3Int> newGrowing = new List<Vector3Int>();
 
-        for (int x = -1; x <= 1; x++) {
-            for (int y = -1; y <= 1; y++) {
-                var _x = cell.x + x;
-                var _y = cell.y + y;
-                if (state[_x, _y] == 0 && Random.Range(0, 1f) < 0.05f) {
-                    state[_x, _y] = state[cell.x, cell.y];
-                    growing.Add(new Vector3Int(_x, _y, 0));
-                }
+        foreach (var cell in growing) {
+            var x = Random.Range(-1, 2);
+            var y = Random.Range(-1, 2);
+            
+            var _x = cell.x + x;
+            var _y = cell.y + y;
+
+            var s = state[cell.x, cell.y];
+            
+            if (_x >= 0 && _y >= 0 && _x < width && _y < height && state[_x, _y] < s) {
+                state[_x, _y] = s;
+                newGrowing.Add(new Vector3Int(_x, _y, 0));
             }
+        }
+
+        growing.AddRange(newGrowing);
+
+        if (Camera.main.orthographicSize < 20) {
+            Camera.main.orthographicSize *= 1.03f;
         }
     }
 
     public void kickoff() {
         var worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         Vector3Int cell = tilemap.WorldToCell(worldPoint) + topRight;
+
+        Debug.Log(cell);
         
-        growing.Add(cell);
-        state[cell.x, cell.y] = randomTile();
+        if (cell.x < width && cell.y < height && 
+            cell.x >= 0 && cell.y >= 0) {
+            
+            growing.Add(cell);
+            state[cell.x, cell.y] = randomTile();
 
-        if (runState == State.INIT) {
-            runState = State.RUNNING;
-            StartCoroutine(grow());
+            if (runState == State.INIT) {
+                runState = State.RUNNING;
+                StartCoroutine(grow());
+            }
+
         }
-
-
-        Camera.main.orthographicSize *= 1.03f;
+        
     }
 
     private byte randomTile() {
