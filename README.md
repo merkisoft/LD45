@@ -2,8 +2,10 @@
 
 ## Bacteria Game
 
+Start with absolutely nothing and grow different kind of bacteria.
+
+But pay attention, a deadly bacteria is spreading too! 
+
 ### Tools
-- Unity
-- JetBrains Rider
-- Gimp
-- Wacom stylus
+- Unity & JetBrains Rider
+- Gimp & Wacom stylus
